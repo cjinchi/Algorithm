@@ -11,25 +11,24 @@ private:
 	vector<vector<short>> tgraph;
 	vector<short> stack;
 	vector<bool> visited;
-	vector<vector<short>> scc;
-	vector<short> vertex_to_scc;
-	vector<short> scc_impact;
+	vector<bool> impact_visited;
+	short max_impact;
+	vector<short> max_impact_indexs;
 private:
 	void first_round_dfs(short index);
-	void second_round_dfs(short index);
 	void get_t_graph();
-	void get_one_scc_impact(short scc_index);
 	short impact_dfs(short index);
+	void tag_visited_dfs(short vertex_index, bool add_to_maximpact);
 public:
 	problem();
 	void get_data();
 	void get_scc();
-	void get_all_scc_impact();
 	void output();
 };
 
 problem::problem()
 {
+	max_impact = 0;
 }
 
 void problem::get_data()
@@ -50,6 +49,7 @@ void problem::get_data()
 		graph.push_back(v_line);
 	}
 	visited.resize(graph.size(), false);
+	impact_visited.resize(graph.size(), false);
 }
 
 void problem::get_t_graph()
@@ -83,7 +83,6 @@ void problem::get_scc()
 	get_t_graph();
 
 	//second round dfs
-	vertex_to_scc.resize(graph.size(),-1);
 	fill(visited.begin(), visited.end(), false);
 	while (stack.size() > 0)
 	{
@@ -92,14 +91,24 @@ void problem::get_scc()
 
 		if (!visited[vertex_index])
 		{
-			visited[vertex_index] = true;
-
-			vector<short> one_scc;
-			one_scc.push_back(vertex_index);
-			scc.push_back(one_scc);
-			vertex_to_scc[vertex_index] = (short)(scc.size() - 1);
-
-			second_round_dfs(vertex_index);
+			fill(impact_visited.begin(), impact_visited.end(), false);
+			impact_visited[vertex_index] = true;
+			short temp_impact = impact_dfs(vertex_index)-1;
+			
+			if (temp_impact > max_impact)
+			{
+				max_impact_indexs.clear();
+				max_impact = temp_impact;
+				tag_visited_dfs(vertex_index,true);
+			}
+			else if (temp_impact==max_impact)
+			{
+				tag_visited_dfs(vertex_index,true);
+			}
+			else
+			{
+				tag_visited_dfs(vertex_index, false);
+			}
 		}
 	}
 
@@ -120,61 +129,16 @@ void problem::first_round_dfs(short index)
 		}
 	}
 }
-
-void problem::second_round_dfs(short index)
-{
-	for (short i = 0; i < (short)tgraph[index].size(); i++)
-	{
-		short nei_index = tgraph[index][i];
-		if (!visited[nei_index])
-		{
-			visited[nei_index] = true;
-			scc[scc.size() - 1].push_back(nei_index);
-			vertex_to_scc[nei_index] = (short)(scc.size() - 1);
-			second_round_dfs(nei_index);
-		}
-	}
-}
-
-void problem::get_all_scc_impact()
-{
-	scc_impact.resize(scc.size(), -1);
-	for (short i = 0; i < (short)scc.size(); i++)
-	{
-		get_one_scc_impact(i);
-	}
-}
-void problem::get_one_scc_impact(short scc_index)
-{
-	if (scc_impact[scc_index] >= 0)
-	{
-		return;
-	}
-	else
-	{
-		fill(visited.begin(), visited.end(), false);
-		visited[scc[scc_index][0]] = true;
-		scc_impact[scc_index]=impact_dfs(scc[scc_index][0])-1;
-	}
-}
 short problem::impact_dfs(short index)
 {
 	short result = 1;//myself
 	for (short i = 0; i < (short)graph[index].size(); i++)
 	{
 		short nei_index = graph[index][i];
-		if (!visited[nei_index])
+		if (!impact_visited[nei_index])
 		{
-			visited[nei_index] = true;
-			if (vertex_to_scc[index] == vertex_to_scc[nei_index])
-			{
-				result += impact_dfs(nei_index);
-			}
-			else
-			{
-				get_one_scc_impact(vertex_to_scc[nei_index]);
-				result += (scc_impact[vertex_to_scc[nei_index]] + 1);
-			}
+			impact_visited[nei_index] = true;
+			result += impact_dfs(nei_index);
 		}
 	}
 	return result;
@@ -182,28 +146,36 @@ short problem::impact_dfs(short index)
 void problem::output()
 {
 	cout << "I have read the rules about plagiarism punishment" << endl;
-	short max_impact = 0, max_index = 0;
-	for (short i = 0; i < (short)scc_impact.size(); i++)
-	{
-		if (scc_impact[i] > max_impact)
-		{
-			max_impact = scc_impact[i];
-			max_index = i;
-		}
-	}
 	cout << max_impact << endl;
-	sort(scc[max_index].begin(), scc[max_index].end());
-	for (short i = 0; i < (short)scc[max_index].size(); i++)
+	sort(max_impact_indexs.begin(), max_impact_indexs.end());
+	for (int i = 0; i < (int)max_impact_indexs.size(); i++)
 	{
-		cout << scc[max_index][i] << " ";
+		cout << max_impact_indexs[i] << " ";
 	}
 }
+
+void problem::tag_visited_dfs(short vertex_index, bool add_to_maximpact)
+{
+	for (short i = 0; i < (short)tgraph[vertex_index].size(); i++)
+	{
+		short nei_index = tgraph[vertex_index][i];
+		if (!visited[nei_index])
+		{
+			visited[nei_index] = true;
+			if (add_to_maximpact)
+			{
+				max_impact_indexs.push_back(nei_index);
+			}
+			tag_visited_dfs(nei_index,add_to_maximpact);
+		}
+	}
+}
+
 int main()
 {
 	problem x;
 	x.get_data();
 	x.get_scc();
-	x.get_all_scc_impact();
 	x.output();
 	return 0;
 }
