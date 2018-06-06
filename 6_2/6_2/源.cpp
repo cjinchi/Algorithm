@@ -12,6 +12,7 @@ private:
 	vector<short> stack;
 	vector<bool> visited;
 	vector<bool> impact_visited;
+	vector<short> impact;
 	short max_impact;
 	vector<short> max_impact_indexs;
 private:
@@ -41,9 +42,8 @@ void problem::get_data()
 		ss.clear();
 		ss << s_line;
 		vector<short> v_line;
-		while (!ss.eof())
+		while (ss >> temp)
 		{
-			ss >> temp;
 			v_line.push_back(temp);
 		}
 		graph.push_back(v_line);
@@ -156,21 +156,20 @@ void problem::output()
 
 void problem::tag_visited_dfs(short vertex_index, bool add_to_maximpact)
 {
+	visited[vertex_index] = true;
+	if (add_to_maximpact)
+	{
+		max_impact_indexs.push_back(vertex_index);
+	}
 	for (short i = 0; i < (short)tgraph[vertex_index].size(); i++)
 	{
 		short nei_index = tgraph[vertex_index][i];
 		if (!visited[nei_index])
 		{
-			visited[nei_index] = true;
-			if (add_to_maximpact)
-			{
-				max_impact_indexs.push_back(nei_index);
-			}
 			tag_visited_dfs(nei_index,add_to_maximpact);
 		}
 	}
 }
-
 int main()
 {
 	problem x;
